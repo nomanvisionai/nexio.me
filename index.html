@@ -4,15 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXIO - Premium Private Messenger</title>
+    
+    <!-- ================= APP ICON LINK ================= -->
+    <link rel="icon" href="assets/icon.png" type="image/png">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .hidden { display: none; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* স্প্ল্যাশ স্ক্রিনের স্মুথ অ্যানিমেশন */
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 h-screen w-screen flex justify-center items-center font-sans overflow-hidden">
+<body class="bg-slate-100 h-screen w-screen flex justify-center items-center font-sans overflow-hidden relative">
+
+    <!-- ================= PREMIUM SPLASH SCREEN ================= -->
+    <div id="splash-screen" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col justify-center items-center select-none">
+        <!-- আপনার আপলোড করা loading.png ছবি -->
+        <img src="assets/loading.png" alt="Nexio Loading" class="w-32 h-32 md:w-40 md:h-40 object-contain mb-4 animate-pulse">
+        <div class="w-12 h-1 bg-indigo-500 rounded-full overflow-hidden">
+            <div class="w-full h-full bg-white origin-left animate-[loading_1.5s_infinite_ease-in-out]"></div>
+        </div>
+        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-4">Securing Connection...</p>
+    </div>
+    
+    <style>
+        @keyframes loading {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(1); }
+            100% { transform: scaleX(0); transform-origin: right; }
+        }
+    </style>
 
     <!-- ================= TOAST ALERT ================= -->
     <div id="custom-alert" class="hidden fixed top-5 max-w-sm w-full mx-4 z-50 p-4 rounded-lg shadow-xl text-white font-medium flex items-center justify-between transition-all duration-300">
@@ -279,6 +308,15 @@
         let currentUserData = null;
         let activeChatUser = null;
         let myFriendsUids = []; 
+
+        // স্প্ল্যাশ স্ক্রিন কন্ট্রোল লজিক (৩ সেকেন্ড পর বন্ধ হবে)
+        window.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('splash-screen');
+            setTimeout(() => {
+                splash.classList.add('fade-out');
+                setTimeout(() => splash.remove(), 500); // মেমোরি খালি করতে পেজ থেকে মুছে ফেলা
+            }, 3000); // ৩০০০ মিলি-সেকেন্ড = ৩ সেকেন্ড
+        });
 
         function showToast(message, type = "success") {
             alertText.innerText = message;
