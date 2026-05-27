@@ -27,7 +27,6 @@
 
     <!-- ================= PREMIUM SPLASH SCREEN ================= -->
     <div id="splash-screen" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col justify-center items-center select-none">
-        <!-- আপনার আপলোড করা loading.png ছবি -->
         <img src="assets/loading.png" alt="Nexio Loading" class="w-32 h-32 md:w-40 md:h-40 object-contain mb-4 animate-pulse">
         <div class="w-12 h-1 bg-indigo-500 rounded-full overflow-hidden">
             <div class="w-full h-full bg-white origin-left animate-[loading_1.5s_infinite_ease-in-out]"></div>
@@ -50,15 +49,26 @@
 
     <!-- ================= FRIEND'S PROFILE MODAL ================= -->
     <div id="profile-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs text-center relative">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-center relative">
             <h3 class="text-xl font-bold text-slate-800 mb-4">User Profile</h3>
             <div class="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex justify-center items-center text-3xl font-bold mx-auto mb-3" id="modal-avatar">U</div>
             <h4 class="text-lg font-bold text-slate-700" id="modal-name">Name</h4>
             <p class="text-sm text-indigo-600 font-medium mb-2" id="modal-username">@username</p>
             <p class="text-xs text-slate-500 bg-slate-100 py-1 px-2 rounded-md inline-block mb-3" id="modal-email">email@gmail.com</p>
-            <div class="text-sm text-slate-600 border-t pt-3 mb-4" id="modal-dob-box">
+            
+            <div class="text-sm text-slate-600 border-t pt-3 mb-3" id="modal-dob-box">
                 🎂 Birthday: <span id="modal-dob" class="font-semibold">Hidden</span>
             </div>
+
+            <!-- FRIEND PROFILE CHAT LINK (টেলিগ্রামের মতো বন্ধুরা যাতে আপনার লিঙ্ক কপি করতে পারে) -->
+            <div class="bg-slate-50 p-2.5 rounded-xl mb-4 border border-slate-200 text-left">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Chat Link</label>
+                <div class="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200">
+                    <input type="text" id="friend-share-link" readonly class="text-xs text-slate-600 bg-transparent flex-1 outline-none font-mono select-all">
+                    <button id="copy-friend-link-btn" class="bg-indigo-600 text-white px-2.5 py-1 rounded-md text-[11px] font-bold hover:bg-indigo-700 transition cursor-pointer">Copy</button>
+                </div>
+            </div>
+
             <button id="close-profile-btn" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg font-medium transition cursor-pointer">Close</button>
         </div>
     </div>
@@ -66,8 +76,17 @@
     <!-- ================= MY SETTINGS / EDIT PROFILE MODAL ================= -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative overflow-y-auto max-h-[90vh]">
-            <h3 class="text-2xl font-black text-slate-800 mb-4 border-b pb-2">Edit Profile Settings</h3>
+            <h3 class="text-2xl font-black text-slate-800 mb-2 border-b pb-2">Edit Profile Settings</h3>
             
+            <!-- SHARE LINK SECTION -->
+            <div class="bg-indigo-50 p-3 rounded-xl mb-4 border border-indigo-100">
+                <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wider mb-1">Your Chat Profile Link</label>
+                <div class="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
+                    <input type="text" id="share-link-input" readonly class="text-xs text-slate-600 bg-transparent flex-1 outline-none font-mono select-all">
+                    <button id="copy-link-btn" class="bg-indigo-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-indigo-700 transition cursor-pointer">Copy</button>
+                </div>
+            </div>
+
             <form id="edit-profile-form" class="space-y-4">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -233,7 +252,6 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Setup Firebase Configurations
         const firebaseConfig = {
             apiKey: "AIzaSyDtSFzvut2KqYAaSFeT9DevRC75rqtICwA",
             authDomain: "nexio-chat-daf43.firebaseapp.com",
@@ -289,6 +307,8 @@
         const modalUsername = document.getElementById('modal-username');
         const modalEmail = document.getElementById('modal-email');
         const modalDob = document.getElementById('modal-dob');
+        const friendShareLink = document.getElementById('friend-share-link');
+        const copyFriendLinkBtn = document.getElementById('copy-friend-link-btn');
 
         // Settings Elements
         const settingsModal = document.getElementById('settings-modal');
@@ -301,6 +321,10 @@
         const editDob = document.getElementById('edit-dob');
         const signupUsernameStatus = document.getElementById('signup-username-status');
         const editUsernameStatus = document.getElementById('edit-username-status');
+        
+        // Share profile Elements
+        const shareLinkInput = document.getElementById('share-link-input');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
 
         let isLoginMode = true;
         let unsubscribeMessages = null;
@@ -309,13 +333,12 @@
         let activeChatUser = null;
         let myFriendsUids = []; 
 
-        // স্প্ল্যাশ স্ক্রিন কন্ট্রোল লজিক (৩ সেকেন্ড পর বন্ধ হবে)
         window.addEventListener('DOMContentLoaded', () => {
             const splash = document.getElementById('splash-screen');
             setTimeout(() => {
                 splash.classList.add('fade-out');
-                setTimeout(() => splash.remove(), 500); // মেমোরি খালি করতে পেজ থেকে মুছে ফেলা
-            }, 3000); // ৩০০০ মিলি-সেকেন্ড = ৩ সেকেন্ড
+                setTimeout(() => splash.remove(), 500);
+            }, 3000);
         });
 
         function showToast(message, type = "success") {
@@ -327,7 +350,31 @@
             setTimeout(() => customAlert.classList.add('hidden'), 3000);
         }
 
-        // Live Realtime Username Availability Engine
+        // URL Parameter Reader (ডাইরেক্ট ইনবক্স লিঙ্ক ট্র্যাকার)
+        async function checkUrlForDirectUserChat() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUsername = urlParams.get('user');
+            
+            if (targetUsername && auth.currentUser) {
+                const cleanUser = targetUsername.trim().toLowerCase().replace('@', '');
+                const q = query(collection(db, "users"), where("username", "==", `@${cleanUser}`));
+                const snap = await getDocs(q);
+                
+                if (!snap.empty) {
+                    const targetDoc = snap.docs[0];
+                    const userData = targetDoc.data();
+                    userData.uid = targetDoc.id;
+                    
+                    if (userData.uid !== auth.currentUser.uid) {
+                        openPrivateChatWindow(userData);
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } else {
+                    showToast("User link invalid or user not found!", "error");
+                }
+            }
+        }
+
         async function checkUsernameLive(usernameVal, statusElement) {
             const cleanUser = usernameVal.trim().toLowerCase().replace('@', '');
             if(!cleanUser) {
@@ -337,7 +384,6 @@
             const q = query(collection(db, "users"), where("username", "==", `@${cleanUser}`));
             const snap = await getDocs(q);
             
-            // If checking from settings panel, bypass matching own current username
             let isOwnName = false;
             if (currentUserData && `@${cleanUser}` === currentUserData.username) {
                 isOwnName = true;
@@ -357,7 +403,6 @@
         authUsername.addEventListener('input', () => checkUsernameLive(authUsername.value, signupUsernameStatus));
         editUsername.addEventListener('input', () => checkUsernameLive(editUsername.value, editUsernameStatus));
 
-        // Toggle configuration
         authToggleBtn.addEventListener('click', () => {
             isLoginMode = !isLoginMode;
             authForm.reset();
@@ -391,7 +436,6 @@
             }
         }
 
-        // Authentication Core Pipeline Forms Handles
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = authEmail.value.trim();
@@ -449,23 +493,29 @@
 
         logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // Core Listeners Loop
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 authContainer.classList.add('hidden');
                 chatContainer.classList.remove('hidden');
                 
-                // Track current user live modifications changes
                 onSnapshot(doc(db, "users", user.uid), (snapshot) => {
                     if(snapshot.exists()) {
                         currentUserData = snapshot.data();
                         myNameDisplay.innerText = currentUserData.fullName;
                         myAvatar.innerText = currentUserData.fullName.charAt(0).toUpperCase();
                         myDobPrivacyToggle.checked = currentUserData.showDob !== false;
+                        
+                        const cleanUser = currentUserData.username.replace('@', '');
+                        shareLinkInput.value = `${window.location.origin}${window.location.pathname}?user=${cleanUser}`;
                     }
                 });
 
                 listenToMyFriendsList();
+                
+                setTimeout(() => {
+                    checkUrlForDirectUserChat();
+                }, 1500);
+
             } else {
                 authContainer.classList.remove('hidden');
                 chatContainer.classList.add('hidden');
@@ -480,13 +530,26 @@
             }
         });
 
-        // Sync visibility settings preferences
+        copyLinkBtn.addEventListener('click', () => {
+            shareLinkInput.select();
+            shareLinkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(shareLinkInput.value);
+            showToast("Profile link copied to clipboard!", "success");
+        });
+
+        // বন্ধুর লিঙ্ক ও প্রোফাইল থেকে কপি করার বাটন ফাংশন
+        copyFriendLinkBtn.addEventListener('click', () => {
+            friendShareLink.select();
+            friendShareLink.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(friendShareLink.value);
+            showToast("Friend's chat link copied!", "success");
+        });
+
         myDobPrivacyToggle.addEventListener('change', async () => {
             if(!auth.currentUser) return;
             await updateDoc(doc(db, "users", auth.currentUser.uid), { showDob: myDobPrivacyToggle.checked });
         });
 
-        // Listen to Friends Document relations
         function listenToMyFriendsList() {
             const q = query(collection(db, "friends"), where("myUid", "==", auth.currentUser.uid));
             unsubscribeFriends = onSnapshot(q, async (snapshot) => {
@@ -503,7 +566,6 @@
                 }
 
                 if(!searchFriendInput.value.trim()) {
-                    // Populate sidebar list with actual added contacts
                     for (const fUid of myFriendsUids) {
                         const fDoc = await getDoc(doc(db, "users", fUid));
                         if(fDoc.exists()) {
@@ -516,7 +578,6 @@
             });
         }
 
-        // Global User Directory Database Search Engine
         searchFriendInput.addEventListener('input', async () => {
             const searchVal = searchFriendInput.value.trim().toLowerCase().replace('@', '');
             if(!searchVal) {
@@ -586,7 +647,6 @@
             loadPrivateRoomMessagesChannel();
         }
 
-        // WhatsApp Style Add/Remove Friend State Processor Engine 
         function updateFriendActionButtonState() {
             const isFriend = myFriendsUids.includes(activeChatUser.uid);
             if (isFriend) {
@@ -604,13 +664,11 @@
             
             try {
                 if(isFriend) {
-                    // Remove Relationship Loop
                     const q = query(collection(db, "friends"), where("myUid", "==", auth.currentUser.uid), where("friendUid", "==", activeChatUser.uid));
                     const snap = await getDocs(q);
                     snap.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
                     showToast("Removed from friend list", "success");
                 } else {
-                    // Add Relationship Map Record
                     await addDoc(collection(db, "friends"), {
                         myUid: auth.currentUser.uid,
                         friendUid: activeChatUser.uid
@@ -623,7 +681,6 @@
             }
         });
 
-        // Message Dispatch Loop
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const msgText = messageInput.value.trim();
@@ -672,7 +729,7 @@
             });
         }
 
-        // Target Friends Profiles View Inspector Overlay
+        // Friends Profile Inspector UI Engine
         viewProfileBtn.addEventListener('click', async () => {
             if(!activeChatUser) return;
             const docSnap = await getDoc(doc(db, "users", activeChatUser.uid));
@@ -683,13 +740,17 @@
                 modalUsername.innerText = fData.username;
                 modalEmail.innerText = fData.email;
                 modalDob.innerText = fData.showDob !== false ? (fData.dob || "Not set") : "Locked / Private";
+                
+                // বন্ধুর ইউজারনেম দিয়ে ডাইরেক্ট লিঙ্কটি প্রোফাইল বক্সে লোড করা
+                const cleanFriendUser = fData.username.replace('@', '');
+                friendShareLink.value = `${window.location.origin}${window.location.pathname}?user=${cleanFriendUser}`;
+
                 profileModal.classList.remove('hidden');
             }
         });
 
         closeProfileBtn.addEventListener('click', () => profileModal.classList.add('hidden'));
 
-        // Self Edit Settings Panel Overlay Operations Controllers
         openSettingsTrigger.addEventListener('click', () => {
             if(!currentUserData) return;
             editFirstName.value = currentUserData.firstName || "";
